@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pregnancy Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1c1c1c;--ink2:#4a4a4a;--ink3:#888;
+  --paper:#fdfaf6;--card:#fff;--line:#e8e2d8;
+  --green:#3a7d5e;--green-l:#d4ede3;--green-m:#6aab8a;
+  --amber:#b06030;--amber-l:#f5e8db;
+  --rose:#9e4a4a;--rose-l:#f5e0e0;
+  --blue:#2a5e8a;--blue-l:#dce9f5;
+  --r:10px;--rs:6px;--sh:0 2px 18px rgba(28,28,28,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Jost',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;font-size:15px;}
+header{background:var(--ink);padding:18px 40px 0;display:flex;flex-direction:column;}
+.hdr-top{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;}
+header h1{font-family:'Lora',serif;font-size:1.45rem;color:var(--paper);font-weight:500;letter-spacing:-.01em;}
+header .sub{font-size:.72rem;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;font-weight:300;}
+.tabs{display:flex;}
+.tab{font-family:'Jost',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;padding:11px 20px;border:none;background:transparent;color:var(--ink3);cursor:pointer;border-bottom:2.5px solid transparent;transition:color .2s,border-color .2s;}
+.tab.on{color:var(--paper);border-bottom-color:#c8a060;}
+.tab:hover:not(.on){color:#bbb;}
+.panel{display:none;padding:32px 40px;max-width:1280px;margin:0 auto;}
+.panel.on{display:block;}
+.card{background:var(--card);border-radius:var(--r);padding:24px 28px;box-shadow:var(--sh);border:1px solid var(--line);margin-bottom:20px;}
+.ct{font-family:'Lora',serif;font-size:.95rem;font-style:italic;color:var(--ink);margin-bottom:16px;padding-bottom:11px;border-bottom:1px solid var(--line);}
+label{display:block;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px;}
+input[type=date],input[type=number],input[type=text],select{font-family:'Jost',sans-serif;font-size:.9rem;width:100%;padding:8px 12px;border:1.5px solid var(--line);border-radius:var(--rs);background:var(--paper);color:var(--ink);transition:border-color .2s;outline:none;-moz-appearance:textfield;}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+input:focus,select:focus{border-color:var(--green);}
+.fg{margin-bottom:16px;}
+/* toggle */
+.tog-row{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+.tog{position:relative;width:38px;height:21px;background:var(--line);border-radius:11px;cursor:pointer;border:none;flex-shrink:0;transition:background .2s;}
+.tog.on{background:var(--green);}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:15px;height:15px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.tog.on::after{transform:translateX(17px);}
+.tog-lbl{font-size:.76rem;color:var(--ink2);font-weight:500;}
+/* tab 1 */
+.t1g{display:grid;grid-template-columns:380px 1fr;gap:20px;}
+@media(max-width:700px){.t1g{grid-template-columns:1fr;}}
+.stat{padding:13px 0;border-bottom:1px solid var(--line);}
+.stat:last-child{border-bottom:none;padding-bottom:0;}
+.stat-lbl{font-size:.65rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px;}
+.stat-val{font-family:'Lora',serif;font-size:1.35rem;color:var(--ink);line-height:1.25;}
+.stat-val.hl{color:var(--amber);}
+.stat-sub{font-size:.76rem;color:var(--ink3);margin-top:2px;}
+/* tab 2 */
+.t2bar{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:10px;}
+.t2bar .fg{margin-bottom:0;}
+.lmp-badge{font-size:.65rem;color:var(--green);font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px;}
+.ovr-lnk{font-size:.7rem;color:var(--green);cursor:pointer;text-decoration:underline;margin-top:3px;display:none;}
+.sex-grp{display:flex;gap:6px;}
+.sex-btn{font-family:'Jost',sans-serif;font-size:.74rem;font-weight:600;padding:6px 14px;border-radius:16px;border:1.5px solid var(--line);background:transparent;color:var(--ink3);cursor:pointer;transition:all .15s;}
+.sex-btn:hover{border-color:var(--green);color:var(--ink);}
+.sb-f{background:var(--rose-l);border-color:var(--rose);color:var(--rose);}
+.sb-m{background:var(--blue-l);border-color:var(--blue);color:var(--blue);}
+.sb-u{background:var(--green-l);border-color:var(--green);color:var(--green);}
+.pill-grp{display:flex;border:1.5px solid var(--line);border-radius:var(--rs);overflow:hidden;}
+.pill{font-family:'Jost',sans-serif;font-size:.71rem;font-weight:500;padding:5px 11px;border:none;background:transparent;color:var(--ink3);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.pill.on{background:var(--green);color:#fff;}
+.pill-btn{font-family:'Jost',sans-serif;font-size:.74rem;font-weight:500;padding:6px 14px;border-radius:var(--rs);border:1.5px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-block;text-align:center;}
+.pill-btn:hover{border-color:var(--green);color:var(--green);}
+.load-lbl{cursor:pointer;}
+/* table */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;font-size:.84rem;table-layout:auto;}
+thead th{font-size:.62rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);padding:8px 6px;text-align:left;background:var(--paper);border-bottom:2px solid var(--line);white-space:nowrap;}
+thead th.ah{background:var(--amber-l);color:var(--amber);}
+tbody tr{border-bottom:1px solid #f2ede5;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#fdf9f3;}
+tbody td{padding:4px 3px;vertical-align:middle;}
+/* cell wrapper for unlock button */
+.cw{position:relative;display:flex;align-items:center;}
+.cw .ci{flex:1;padding-right:22px;}
+.cw .ci.noub{padding-right:8px;}
+.ubtn{position:absolute;right:3px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--ink3);font-size:.72rem;padding:2px 3px;border-radius:3px;opacity:.5;display:none;font-weight:700;}
+.ubtn:hover{opacity:1;color:var(--rose);}
+.ubtn.vis{display:block;}
+/* cell inputs */
+.ci{font-family:'Jost',sans-serif;font-size:.84rem;width:100%;padding:6px 8px;border:1.5px solid transparent;border-radius:5px;background:transparent;color:var(--ink);transition:border-color .15s,background .15s;outline:none;min-width:60px;}
+.ci:focus{border-color:var(--green);background:#fff;}
+.ci[readonly]{background:var(--green-l);color:var(--green);font-weight:500;}
+.ci[readonly]:focus{border-color:var(--green-m);}
+.ci.pl{color:var(--rose)!important;font-weight:600;}
+.ci.pm{color:var(--green)!important;font-weight:600;}
+.ci.ph{color:var(--amber)!important;font-weight:600;}
+.us{font-family:'Jost',sans-serif;font-size:.72rem;padding:5px 4px;border:1.5px solid var(--line);border-radius:5px;background:var(--paper);color:var(--ink2);cursor:pointer;outline:none;width:100%;}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--ink3);font-size:1rem;padding:3px 7px;border-radius:4px;transition:color .15s;}
+.del-btn:hover{color:var(--rose);}
+.add-btn{margin-top:11px;font-family:'Jost',sans-serif;font-size:.78rem;font-weight:500;padding:8px 16px;border:1.5px dashed var(--line);border-radius:var(--rs);background:transparent;color:var(--ink3);cursor:pointer;transition:all .15s;}
+.add-btn:hover{border-color:var(--green);color:var(--green);background:var(--green-l);}
+.adv-bar{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);flex-wrap:wrap;}
+.adv-note{font-size:.71rem;color:var(--ink3);font-style:italic;}
+/* chart */
+.chart-controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+.ctl-grp{display:flex;align-items:center;gap:8px;}
+.ctl-lbl{font-size:.68rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);}
+.chart-wrap{position:relative;height:420px;}
+.src-note{font-size:.67rem;color:var(--ink3);font-style:italic;margin-top:9px;line-height:1.65;}
+.grow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:18px;}
+.tow-box{padding:14px 18px;background:var(--green-l);border-radius:var(--rs);border:1px solid var(--green-m);margin-bottom:14px;display:none;}
+.tow-lbl{font-size:.65rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);}
+.tow-val{font-family:'Lora',serif;font-size:1.3rem;color:var(--green);margin-top:4px;}
+.tow-range{font-size:.75rem;color:var(--ink3);margin-top:3px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-top">
+    <h1>Pregnancy Tracker</h1>
+    <span class="sub">Due Date &amp; Fetal Growth</span>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="switchTab(0)">Due Date</button>
+    <button class="tab" onclick="switchTab(1)">Growth Tracker</button>
+  </div>
+</header>
+
+<!-- TAB 1 -->
+<div class="panel on" id="p0">
+  <div class="t1g">
+    <div class="card">
+      <div class="ct">Last Menstrual Period</div>
+      <div class="fg"><label>Date of LMP</label><input type="date" id="lmp-in" onchange="calcT1()"></div>
+      <div class="tog-row">
+        <button class="tog" id="dur-tog" onclick="togDur()"></button>
+        <span class="tog-lbl">Adjust estimated duration</span>
+        <div id="dur-sel" style="flex:1;opacity:.3;pointer-events:none;">
+          <select id="dur-off" onchange="calcT1()" style="padding:6px 10px;">
+            <option value="-14">-14 days (38 wks)</option><option value="-7">-7 days (39 wks)</option>
+            <option value="0" selected>Standard — 40 weeks</option>
+            <option value="7">+7 days (41 wks)</option><option value="14">+14 days (42 wks)</option>
+            <option value="-13">-13 days</option><option value="-12">-12 days</option>
+            <option value="-11">-11 days</option><option value="-10">-10 days</option>
+            <option value="-9">-9 days</option><option value="-8">-8 days</option>
+            <option value="-6">-6 days</option><option value="-5">-5 days</option>
+            <option value="-4">-4 days</option><option value="-3">-3 days</option>
+            <option value="-2">-2 days</option><option value="-1">-1 day</option>
+            <option value="1">+1 day</option><option value="2">+2 days</option>
+            <option value="3">+3 days</option><option value="4">+4 days</option>
+            <option value="5">+5 days</option><option value="6">+6 days</option>
+            <option value="8">+8 days</option><option value="9">+9 days</option>
+            <option value="10">+10 days</option><option value="11">+11 days</option>
+            <option value="12">+12 days</option><option value="13">+13 days</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="t1-out" style="opacity:.35;transition:opacity .3s;">
+      <div class="ct">Summary</div>
+      <div class="stat"><div class="stat-lbl">Currently Pregnant</div><div class="stat-val" id="s-wks">—</div><div class="stat-sub" id="s-days">&nbsp;</div></div>
+      <div class="stat"><div class="stat-lbl">Estimated Due Date</div><div class="stat-val hl" id="s-due">—</div><div class="stat-sub" id="s-dur">&nbsp;</div></div>
+      <div class="stat"><div class="stat-lbl">Time Remaining</div><div class="stat-val" id="s-rem">—</div><div class="stat-sub" id="s-rem2">&nbsp;</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2 -->
+<div class="panel" id="p1">
+  <div class="t2bar">
+    <div class="fg">
+      <label>LMP Date <span class="lmp-badge" id="lmp-badge"></span></label>
+      <input type="date" id="lmp-t2" onchange="onT2lmp()" style="max-width:190px;">
+      <span class="ovr-lnk" id="ovr-lnk" onclick="doOvr()">Override</span>
+    </div>
+    <div class="fg">
+      <label>Baby's Sex</label>
+      <div class="sex-grp">
+        <button class="sex-btn sb-u" onclick="setSex('U',this)">Unknown</button>
+        <button class="sex-btn" onclick="setSex('F',this)">Girl</button>
+        <button class="sex-btn" onclick="setSex('M',this)">Boy</button>
+      </div>
+    </div>
+    <div class="fg">
+      <label>SFH Reference</label>
+      <div class="pill-grp" id="sfhref-grp">
+        <button class="pill" onclick="setSFHref('US',this)">US Clinical</button>
+        <button class="pill on" onclick="setSFHref('IG',this)">INTERGROWTH</button>
+      </div>
+    </div>
+    <div class="fg" style="margin-left:auto;">
+      <label>Session</label>
+      <div style="display:flex;gap:7px;align-items:center;">
+        <button class="pill-btn" onclick="saveSession()" title="Save all inputs to a JSON file">&#8595; Save</button>
+        <label class="pill-btn load-lbl" title="Load a previously saved JSON file">
+          &#8593; Load
+          <input type="file" accept=".json" onchange="loadSession(event)" style="display:none;">
+        </label>
+      </div>
+      <div style="font-size:.65rem;color:var(--ink3);margin-top:4px;" id="session-status"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">Visit Log</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="min-width:140px;">Date of Visit</th>
+          <th style="min-width:90px;">GA</th>
+          <th style="min-width:80px;">Fundal Ht</th>
+          <th style="min-width:56px;">Unit</th>
+          <th style="min-width:72px;">SFH %ile</th>
+          <th style="min-width:100px;">Est. Weight</th>
+          <th style="min-width:72px;">Unit</th>
+          <th style="min-width:72px;">EFW %ile</th>
+          <th id="ah1" class="ah" style="display:none;min-width:78px;">HC (mm)</th>
+          <th id="ah2" class="ah" style="display:none;min-width:56px;">HC u</th>
+          <th id="ah3" class="ah" style="display:none;min-width:72px;">HC %ile</th>
+          <th id="ah4" class="ah" style="display:none;min-width:78px;">AC (mm)</th>
+          <th id="ah5" class="ah" style="display:none;min-width:56px;">AC u</th>
+          <th id="ah6" class="ah" style="display:none;min-width:72px;">AC %ile</th>
+          <th id="ah7" class="ah" style="display:none;min-width:78px;">FL (mm)</th>
+          <th id="ah8" class="ah" style="display:none;min-width:56px;">FL u</th>
+          <th id="ah9" class="ah" style="display:none;min-width:72px;">FL %ile</th>
+          <th id="ah10" class="ah" style="display:none;min-width:80px;">Hadlock g</th>
+          <th id="ah11" class="ah" style="display:none;min-width:72px;">Hadlock %ile</th>
+          <th style="width:28px;"></th>
+        </tr></thead>
+        <tbody id="vtbody"></tbody>
+      </table>
+    </div>
+    <button class="add-btn" onclick="addRow()">+ Add Visit</button>
+    <div class="adv-bar">
+      <button class="tog" id="adv-tog" onclick="togAdv()"></button>
+      <span class="tog-lbl">Advanced — Hadlock biometry (HC · AC · FL)</span>
+      <span class="adv-note">Enter measurements to compute EFW via Hadlock's formula. &nbsp;Enter individual measurements to compute EFW via Hadlock's 3-parameter formula. Each measurement or percentile auto-fills its pair.</span>
+    </div>
+    <p class="src-note" style="margin-top:10px;">
+      Enter date <em>or</em> GA — the other auto-fills when you leave the field.
+      Enter measurement <em>or</em> percentile — the other auto-fills.
+      Click <strong>✕</strong> on a locked field to edit it. Rows sort by GA automatically.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="chart-controls">
+      <div class="ctl-grp">
+        <span class="ctl-lbl">Centile lines</span>
+        <div class="pill-grp" id="lines-grp">
+          <button class="pill on" onclick="setLines('basic',this)">10 · 50 · 90</button>
+          <button class="pill" onclick="setLines('full',this)">+ 25 · 75</button>
+        </div>
+      </div>
+      <div class="ctl-grp" id="adv-ctl" style="display:none;">
+        <span class="ctl-lbl">EFW source</span>
+        <div class="pill-grp" id="efwsrc-grp">
+          <button class="pill on" onclick="setEFWsrc('scan',this)">Scan EFW</button>
+          <button class="pill" onclick="setEFWsrc('hadlock',this)">Hadlock</button>
+        </div>
+      </div>
+      <div class="ctl-grp">
+        <span class="ctl-lbl">Show</span>
+        <div class="pill-grp" id="show-grp">
+          <button class="pill on" onclick="setShowMode('both',this)">FH + EFW</button>
+          <button class="pill" onclick="setShowMode('sfh',this)">FH only</button>
+          <button class="pill" onclick="setShowMode('efw',this)">EFW only</button>
+        </div>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="gchart"></canvas></div>
+    <p class="src-note" id="chart-src">
+      <strong>×</strong> = fundal height (left axis) &nbsp;·&nbsp;
+      <strong>○</strong> = est. fetal weight (right axis)<br>
+      <span id="ref-note">Green = SFH centiles · Rose = EFW centiles. When GROW is active, amber bands replace both.</span><br>
+      INTERGROWTH SFH: Papageorghiou et al., BMJ 2016 · WHO EFW: Kiserud et al., PLOS Med 2017 ·
+      US SFH: 1cm≈1wk, SD=2cm · US EFW: Hadlock et al., Radiology 1991 · Biometry Hadlock formula: Radiology 1985
+    </p>
+  </div>
+
+  <div class="adv-bar" style="margin-bottom:0;">
+    <button class="tog" id="grow-tog" onclick="togGROW()"></button>
+    <span class="tog-lbl">Advanced — Approximate GROW customised growth potential</span>
+    <span class="adv-note">Individual adjustment for maternal height, weight, parity, and ethnicity.</span>
+  </div>
+  <div class="card" id="grow-card" style="display:none;margin-top:14px;">
+    <div class="ct">Approximate GROW — Customised Growth Potential</div>
+    <p class="src-note" style="margin-bottom:14px;font-style:normal;color:var(--ink2);">
+      Based on Gardosi &amp; Francis (AJOG 2009, n=35,235 US births) with Nottingham-derived physiological coefficients (GROW 1.5 documentation, 2020).
+      US constant 3,453g. Approximation only — not the proprietary GROW v9 software.
+    </p>
+    <div class="grow-grid">
+      <div class="fg">
+        <label>Maternal Height</label>
+        <div style="display:flex;gap:6px;">
+          <input type="number" step="0.5" id="g-ht" placeholder="e.g. 160" oninput="recalcGROW()" style="flex:1;">
+          <select class="us" id="g-ht-u" onchange="recalcGROW()" style="width:60px;"><option value="cm">cm</option><option value="in">in</option></select>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Maternal Weight (booking)</label>
+        <div style="display:flex;gap:6px;">
+          <input type="number" step="0.5" id="g-wt" placeholder="e.g. 58" oninput="recalcGROW()" style="flex:1;">
+          <select class="us" id="g-wt-u" onchange="recalcGROW()" style="width:60px;"><option value="kg">kg</option><option value="lbs">lbs</option></select>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Parity (pregnancies before this one)</label>
+        <select id="g-par" class="us" onchange="recalcGROW()">
+          <option value="0">0 — First pregnancy</option>
+          <option value="1">1</option><option value="2">2</option>
+          <option value="3">3</option><option value="4">4+</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Ethnic Origin</label>
+        <select id="g-eth" class="us" onchange="recalcGROW()">
+          <option value="european">White / European</option>
+          <option value="half_south_asian">Mixed — half South Asian</option>
+          <option value="south_asian">South Asian (Indian subcontinent)</option>
+          <option value="african_caribbean">African / Caribbean</option>
+          <option value="other">Other / Unknown</option>
+        </select>
+      </div>
+    </div>
+    <div class="tow-box" id="grow-tow-display">
+      <div class="tow-lbl">Term Optimal Weight (40w)</div>
+      <div class="tow-val" id="grow-tow-val">—</div>
+      <div class="tow-range" id="grow-tow-range">—</div>
+    </div>
+    <p class="src-note">
+      Proportionality: exp(0.578+0.332·GA−0.00354·GA²) / exp(…at GA=40). Centile bands: ±z·CV, CV=11%.
+      "Half South Asian" = ½ × Indian Subcontinent adjustment (−93g): personal interpolation, not from published literature.
+    </p>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// MATH LIBRARY
+// All pure functions. GA clamped to valid ranges internally.
+// ═══════════════════════════════════════════════════════════════
+
+// ── Normal distribution ──────────────────────────────────────
+function pnrm(z){
+  const a1=.254829592,a2=-.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=.3275911;
+  const s=z<0?-1:1,x=Math.abs(z)/Math.SQRT2,t=1/(1+p*x);
+  return .5*(1+s*(1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x)));
+}
+function qnrm(p){
+  if(p<=0)return-Infinity;if(p>=1)return Infinity;
+  const a=[2.50662823884,-18.61500062529,41.39119773534,-25.44106049637];
+  const b=[-8.47351093090,23.08336743743,-21.06224101826,3.13082909833];
+  const c=[.3374754822726,.9761690190917,.1607979714918,.0276438810334,.0038405729374,.0003951896511,.0000321767882,.0000002888167,.0000003960315];
+  const q=p-.5;
+  if(Math.abs(q)<=.42){const r=q*q;return q*(((a[3]*r+a[2])*r+a[1])*r+a[0])/((((b[3]*r+b[2])*r+b[1])*r+b[0])*r+1);}
+  let r=p<.5?p:1-p;r=Math.sqrt(-Math.log(r));
+  let x=c[0];for(let i=1;i<9;i++)x=x*r+c[i];
+  return p<.5?-x:x;
+}
+
+// ── WHO EFW (Kiserud et al., PLOS Med 2017) ──────────────────
+// log(EFW) = b0+b1t+b2t²+b3t³+b4t⁴; valid 14–40w
+const EC={
+  F:{
+    0.10:[1.55170122624531e-1,3.56594762998776e-1,-4.01282727802378e-3,-1.14891004630409e-5,2.91905926442287e-7],
+    0.25:[-6.17926685323766e-3,3.91489315579454e-1,-5.83983363713264e-3,2.74701265932854e-5,1.25218741602196e-8],
+    0.50:[2.47277418113423e-1,3.70440200280727e-1,-5.07278668575342e-3,1.79658724333519e-5,3.17102018612384e-8],
+    0.75:[3.76784712355285e-1,3.61976162764535e-1,-4.63535949504953e-3,8.51326693543256e-6,1.04436638183705e-7],
+    0.90:[2.86538459425835e-1,3.87048945293849e-1,-6.06592437416756e-3,4.19335923075893e-5,-1.64397771502855e-7],
+  },
+  M:{
+    0.10:[-6.31025226657407e-2,3.90993877846881e-1,-5.60764189001381e-3,1.90944627895524e-5,8.84241803692905e-8],
+    0.25:[-1.36872920737678e-1,4.11385471212291e-1,-6.62710457053528e-3,4.01078967104191e-5,-6.09266544869339e-8],
+    0.50:[2.22999048464601e-1,3.72888830200871e-1,-4.82835487505679e-3,5.38927935557086e-6,1.72630247811947e-7],
+    0.75:[2.74568726691847e-1,3.81231662554576e-1,-5.57248890309729e-3,2.934934995138e-5,-8.27628809790136e-8],
+    0.90:[2.40213697127957e-1,3.91178494734445e-1,-5.79538706713982e-3,2.75733050639858e-5,-1.90970772277149e-8],
+  }
+};
+const EFW_QS=[0.10,0.25,0.50,0.75,0.90];
+
+function efwPoly(b,t){return Math.exp(b[0]+b[1]*t+b[2]*t*t+b[3]*t*t*t+b[4]*t*t*t*t);}
+
+// efwAt: EFW at an anchor quantile. 'U' sex = geometric mean of F and M.
+function efwAt(ga,q,s){
+  const t=Math.max(14,Math.min(40,ga));
+  if(s==='U'){
+    const f=efwPoly(EC.F[q],t),m=efwPoly(EC.M[q],t);
+    return Math.sqrt(f*m); // geometric mean
+  }
+  return efwPoly(EC[s][q],t);
+}
+
+// efwInterp: EFW at any quantile 0.001–0.999, with log-linear tail extrapolation
+function efwInterp(ga,q,s){
+  const qc=Math.max(0.001,Math.min(0.999,q));
+  const vals=EFW_QS.map(qa=>efwAt(ga,qa,s));
+  if(qc<=EFW_QS[0]){
+    const z0=qnrm(EFW_QS[0]),z1=qnrm(EFW_QS[1]);
+    const slope=(Math.log(vals[1])-Math.log(vals[0]))/(z1-z0);
+    return Math.exp(Math.log(vals[0])+slope*(qnrm(qc)-z0));
+  }
+  if(qc>=EFW_QS[4]){
+    const z3=qnrm(EFW_QS[3]),z4=qnrm(EFW_QS[4]);
+    const slope=(Math.log(vals[4])-Math.log(vals[3]))/(z4-z3);
+    return Math.exp(Math.log(vals[4])+slope*(qnrm(qc)-z4));
+  }
+  for(let i=0;i<4;i++){
+    if(EFW_QS[i]<=qc&&qc<=EFW_QS[i+1]){
+      const f=(qc-EFW_QS[i])/(EFW_QS[i+1]-EFW_QS[i]);
+      return Math.exp((1-f)*Math.log(vals[i])+f*Math.log(vals[i+1]));
+    }
+  }
+}
+
+// efwToPct: weight → percentile via binary search
+function efwToPct(ga,g,s){
+  let lo=0.001,hi=0.999;
+  for(let i=0;i<64;i++){const m=(lo+hi)/2;efwInterp(ga,m,s)<g?lo=m:hi=m;}
+  return(lo+hi)/2;
+}
+
+// ── Hadlock 1991 US Clinical EFW reference (Radiology 181:129-133) ─
+// Descriptive US population standard. P10/P50/P90 in grams by week.
+// Used when sfhRef==='US'. Interpolated linearly between weeks.
+const H91={
+  20:[264,330,411], 21:[311,389,485], 22:[363,453,565],
+  23:[424,530,660], 24:[490,612,763], 25:[568,706,881],
+  26:[650,812,1012],27:[745,928,1158],28:[848,1059,1322],
+  29:[962,1199,1498],30:[1088,1360,1698],31:[1225,1533,1917],
+  32:[1374,1717,2145],33:[1533,1918,2394],34:[1703,2127,2657],
+  35:[1880,2346,2934],36:[2054,2567,3207],37:[2218,2777,3465],
+  38:[2390,2988,3733],39:[2531,3168,3950],40:[2675,3342,4176],
+};
+function h91MS(ga){
+  const keys=Object.keys(H91).map(Number).sort((a,b)=>a-b);
+  const clampGA=Math.max(keys[0],Math.min(keys[keys.length-1],ga));
+  if(H91[clampGA])return{p10:H91[clampGA][0],p50:H91[clampGA][1],p90:H91[clampGA][2]};
+  for(let i=0;i<keys.length-1;i++){
+    if(clampGA>=keys[i]&&clampGA<=keys[i+1]){
+      const f=(clampGA-keys[i])/(keys[i+1]-keys[i]);
+      const a=H91[keys[i]],b=H91[keys[i+1]];
+      return{p10:a[0]+f*(b[0]-a[0]),p50:a[1]+f*(b[1]-a[1]),p90:a[2]+f*(b[2]-a[2])};
+    }
+  }
+}
+function h91ToQ(ga,g){
+  // Convert weight to percentile using log-normal approximation from P10/P50/P90
+  const{p10,p50,p90}=h91MS(ga);
+  const sd=(Math.log(p90)-Math.log(p10))/(2*1.2816);
+  const mu=Math.log(p50);
+  return pnrm((Math.log(Math.max(1,g))-mu)/sd);
+}
+function h91AtQ(ga,p){
+  const{p10,p50,p90}=h91MS(ga);
+  const sd=(Math.log(p90)-Math.log(p10))/(2*1.2816);
+  const mu=Math.log(p50);
+  return Math.exp(mu+qnrm(p)*sd);
+}
+
+// ── SFH models ───────────────────────────────────────────────
+// GA clamped to [14,40] — both models only valid in this range
+function sfhClamp(ga){return Math.max(14,Math.min(40,ga));}
+function sfhMuIG(ga){const g=sfhClamp(ga);return -15.500217+0.267323*g+6.311765*Math.sqrt(g);}
+function sfhSigIG(ga){const g=sfhClamp(ga);return 0.026324+0.087374*g;}
+function sfhMuUS(ga){return sfhClamp(ga);} // 1cm ≈ 1wk, clamped
+function sfhSigUS(){return 2.0;}
+
+let sfhRef='IG';
+
+// EFW reference dispatcher — respects current sfhRef setting
+function efwToPctRef(ga,g,s){
+  if(sfhRef==='US') return h91ToQ(ga,g);
+  return efwToPct(ga,g,s);
+}
+function efwInterpRef(ga,p,s){
+  if(sfhRef==='US') return h91AtQ(ga,p);
+  return efwInterp(ga,p,s);
+}
+function sfhMu(ga){return sfhRef==='IG'?sfhMuIG(ga):sfhMuUS(ga);}
+function sfhSig(ga){return sfhRef==='IG'?sfhSigIG(ga):sfhSigUS();}
+function sfhAtQ(ga,p){return Math.max(0, sfhMu(ga)+qnrm(p)*sfhSig(ga));}
+function sfhToQ(ga,cm){return pnrm((cm-sfhMu(ga))/sfhSig(ga));}
+
+// ── Hadlock 1985 (HC, AC, FL all in cm; EFW in grams) ───────
+function hadlock(hc,ac,fl){
+  if(hc==null||ac==null||fl==null)return null;
+  return Math.pow(10,1.326-0.00326*ac*fl+0.0107*hc+0.0438*ac+0.158*fl);
+}
+
+// ── WHO Biometry Coefficients (Kiserud et al., PLOS Med 2017) ──────
+// log(measurement_mm) = b0+b1t+b2t²+b3t³+b4t⁴  (t=GA weeks, valid 14-40w)
+// Source: coefficientsGlobalV3.csv from WHO Fetal Growth Calculator
+// Verified: HC=270mm at 30w → 14.8th percentile (matches WHO calculator)
+const BIOC={
+  HC:{
+    0.10:[1.83059537388222e+0,2.72442511749740e-1,-6.59546864496838e-3,5.63957469365128e-5,0],
+    0.25:[1.94181945227701e+0,2.65847571674450e-1,-6.44544904011178e-3,5.54517813431795e-5,0],
+    0.50:[2.09924879247164e+0,2.53373656106037e-1,-6.05647816678282e-3,5.14256072059917e-5,0],
+    0.75:[2.20777451923048e+0,2.45212320927953e-1,-5.78557948587613e-3,4.83972618799514e-5,0],
+    0.90:[2.31776999721364e+0,2.36651510200538e-1,-5.50781288608926e-3,4.53975879344267e-5,0],
+  },
+  AC:{
+    0.10:[1.24418122481299e+0,3.16315401650234e-1,-8.14092689297361e-3,7.72501495178619e-5,0],
+    0.25:[1.44520878528145e+0,2.99433786203949e-1,-7.59672485585945e-3,7.16689934123440e-5,0],
+    0.50:[1.58552931028045e+0,2.89936781915424e-1,-7.32651929135797e-3,6.92616316439940e-5,0],
+    0.75:[1.71452506914277e+0,2.81367067786763e-1,-7.08195596502471e-3,6.70862304338410e-5,0],
+    0.90:[1.78078382317074e+0,2.79278890414784e-1,-7.06437889832890e-3,6.75104548969352e-5,0],
+  },
+  FL:{
+    0.10:[-6.69175407354157e+0,1.22500911064189e+0,-5.59206182067860e-2,1.18320191905997e-3,-9.50365006831978e-6],
+    0.25:[-6.07953118554742e+0,1.15245170563351e+0,-5.25510654314434e-2,1.11418613323875e-3,-8.98022809747130e-6],
+    0.50:[-5.54922620776446e+0,1.09559990166124e+0,-5.01310925949098e-2,1.06780725695860e-3,-8.63970606288493e-6],
+    0.75:[-4.68666987282664e+0,9.78111793398168e-1,-4.39319069083821e-2,9.23466440030720e-4,-7.39427758542544e-6],
+    0.90:[-4.31219596825529e+0,9.40387053082540e-1,-4.24709867520927e-2,8.99777424092650e-4,-7.26284658350453e-6],
+  },
+};
+const BIO_QS=[0.10,0.25,0.50,0.75,0.90];
+
+function bioAt(ga,q,type){
+  const t=Math.max(14,Math.min(40,ga));
+  const b=BIOC[type][q];
+  return Math.exp(b[0]+b[1]*t+b[2]*t*t+b[3]*t*t*t+b[4]*t*t*t*t);
+}
+function bioInterp(ga,q,type){
+  const qc=Math.max(0.001,Math.min(0.999,q));
+  const vals=BIO_QS.map(qa=>bioAt(ga,qa,type));
+  if(qc<=BIO_QS[0]){
+    const slope=(Math.log(vals[1])-Math.log(vals[0]))/(qnrm(BIO_QS[1])-qnrm(BIO_QS[0]));
+    return Math.exp(Math.log(vals[0])+slope*(qnrm(qc)-qnrm(BIO_QS[0])));
+  }
+  if(qc>=BIO_QS[4]){
+    const slope=(Math.log(vals[4])-Math.log(vals[3]))/(qnrm(BIO_QS[4])-qnrm(BIO_QS[3]));
+    return Math.exp(Math.log(vals[4])+slope*(qnrm(qc)-qnrm(BIO_QS[4])));
+  }
+  for(let i=0;i<4;i++){
+    if(BIO_QS[i]<=qc&&qc<=BIO_QS[i+1]){
+      const f=(qc-BIO_QS[i])/(BIO_QS[i+1]-BIO_QS[i]);
+      return Math.exp((1-f)*Math.log(vals[i])+f*Math.log(vals[i+1]));
+    }
+  }
+}
+function bioToPct(mm,ga,type){
+  let lo=0.001,hi=0.999;
+  for(let i=0;i<64;i++){const m=(lo+hi)/2;bioInterp(ga,m,type)<mm?lo=m:hi=m;}
+  return(lo+hi)/2;
+}
+function bioAtPct(p,ga,type){return Math.max(0.1,bioInterp(ga,p,type));}
+
+// ── GROW (Gardosi & Francis, AJOG 2009; GROW 1.5 docs 2020) ─
+const GW={
+  CONST:3453.4, HT_MED:162.3, WT_MED:64.3, HT_C:7.8,
+  WT_C:[8.7,-0.117,0.00072], CV:0.11, GM:40.0,
+  ETH:{european:0,half_south_asian:-93,south_asian:-186,african_caribbean:-127.5,other:-65.2},
+  PAR:{0:0,1:108,2:148.6,3:149.9,4:149.8}
+};
+function growTOW(htCm,wtKg,eth,par){
+  const hd=htCm-GW.HT_MED,wd=wtKg-GW.WT_MED;
+  return GW.CONST+hd*GW.HT_C+GW.WT_C[0]*wd+GW.WT_C[1]*wd*wd+GW.WT_C[2]*wd*wd*wd+(GW.ETH[eth]||0)+(GW.PAR[Math.min(par,4)]||0);
+}
+function growProp(ga){
+  const t=Math.max(10,Math.min(42,ga));
+  return Math.exp(0.578+0.332*t-0.00354*t*t)/Math.exp(0.578+0.332*GW.GM-0.00354*GW.GM*GW.GM);
+}
+function growEFW(tow,ga){return tow*growProp(ga);}
+function growSFH(efwG){return(efwG+5012.29)/225.99;} // GROW doc: EFW=225.99*SFH-5012.29
+function growEFWatQ(tow,ga,p){return growEFW(tow,ga)*(1+qnrm(p)*GW.CV);}
+function growSFHatQ(tow,ga,p){return growSFH(growEFWatQ(tow,ga,p));}
+
+// ── Unit conversions ─────────────────────────────────────────
+function toCm(v,u){if(v===''||v==null||isNaN(+v))return null;return u==='mm'?+v/10:u==='in'?+v*2.54:+v;}
+function fromCm(cm,u){if(cm==null)return'';return u==='mm'?(cm*10).toFixed(0):u==='in'?(cm/2.54).toFixed(2):cm.toFixed(1);}
+function toMm(v,u){const c=toCm(v,u);return c==null?null:c*10;}
+function fromMm(mm,u){return mm==null?'':fromCm(mm/10,u);}
+function toG(v,v2,u){
+  if((v===''||v==null)&&u!=='lbs_oz')return null;
+  if(u==='g')return+v||null;
+  if(u==='kg')return+v?+v*1000:null;
+  if(u==='lbs_oz'){const g=(+v||0)*453.592+(+v2||0)*28.3495;return g||null;}
+  return null;
+}
+function fromG(g,u){
+  if(g==null)return{v:'',v2:''};
+  if(u==='g')return{v:Math.round(g)+'',v2:''};
+  if(u==='kg')return{v:(g/1000).toFixed(3),v2:''};
+  const oz=g/28.3495,l=Math.floor(oz/16);return{v:l+'',v2:(oz%16).toFixed(1)};
+}
+
+// ── Date / GA helpers ────────────────────────────────────────
+function gaFromDate(d,lmp){
+  if(!d||!lmp)return null;
+  const diff=(new Date(d+'T12:00:00')-new Date(lmp+'T12:00:00'))/864e5;
+  return diff<0?null:diff/7;
+}
+function dateFromGA(ga,lmp){
+  if(!lmp||ga==null)return'';
+  const d=new Date(lmp+'T12:00:00');d.setDate(d.getDate()+Math.round(ga*7));
+  return d.toISOString().split('T')[0];
+}
+function gaFmt(ga){if(ga==null)return'';const w=Math.floor(ga),d=Math.round((ga-w)*7);return d?`${w}w ${d}d`:`${w}w`;}
+function gaParseStr(s){
+  if(!s||!s.trim())return null;
+  const t=s.trim().match(/^(\d+)(?:\s*[wW]\s*(\d+)?\s*[dD]?)?$/);
+  if(t)return+t[1]+(t[2]?+t[2]/7:0);
+  const f=parseFloat(s);return isNaN(f)?null:f;
+}
+function fmtDate(ds){
+  if(!ds)return'';
+  return new Date(ds+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+
+// Colour a percentile field
+function styPct(el,pct){
+  el.classList.remove('pl','pm','ph');
+  if(pct<10)el.classList.add('pl');
+  else if(pct>90)el.classList.add('ph');
+  else el.classList.add('pm');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// APPLICATION STATE
+// ═══════════════════════════════════════════════════════════════
+let durOn=false;
+let t2Ovr=false;
+let sex='U';
+let rowId=0;
+let advOn=false;
+let growOn=false;
+let growTOWval=null;
+let showFull=false;
+let efwSrc='scan';
+let showMode='both'; // 'both', 'sfh', 'efw'
+
+function getLMP(){return document.getElementById('lmp-t2').value||null;}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB 1 — Due Date
+// ═══════════════════════════════════════════════════════════════
+function togDur(){
+  durOn=!durOn;
+  document.getElementById('dur-tog').classList.toggle('on',durOn);
+  const s=document.getElementById('dur-sel');
+  s.style.opacity=durOn?1:.3;s.style.pointerEvents=durOn?'auto':'none';
+  calcT1();
+}
+
+function calcT1(){
+  const lv=document.getElementById('lmp-in').value;
+  if(!lv)return;
+  const lmp=new Date(lv+'T12:00:00'),now=new Date();now.setHours(12,0,0,0);
+  const off=durOn?+document.getElementById('dur-off').value:0;
+  const due=new Date(lmp);due.setDate(due.getDate()+280+off);
+  const dsl=Math.floor((now-lmp)/864e5),wk=Math.floor(dsl/7),dy=dsl%7;
+  const dr=Math.round((due-now)/864e5),wr=Math.floor(Math.abs(dr)/7),dd=Math.abs(dr)%7;
+  document.getElementById('s-wks').textContent=`${wk} week${wk!==1?'s':''}`;
+  document.getElementById('s-days').textContent=dy?`and ${dy} day${dy!==1?'s':''}`:' ';
+  document.getElementById('s-due').textContent=fmtDate(due.toISOString().split('T')[0]);
+  const tw=Math.round((280+off)/7);
+  document.getElementById('s-dur').textContent=`Based on ${tw}-week pregnancy${off?` (${off>0?'+':''}${off} day${Math.abs(off)!==1?'s':''})`:' '}`;
+  document.getElementById('s-rem').textContent=dr>=0?`${wr} week${wr!==1?'s':''}`:`${wr}w ${dd}d overdue`;
+  document.getElementById('s-rem2').textContent=(dr>=0&&dd)?`and ${dd} day${dd!==1?'s':''}`:' ';
+  document.getElementById('t1-out').style.opacity=1;
+  if(!t2Ovr){
+    document.getElementById('lmp-t2').value=lv;
+    document.getElementById('lmp-badge').textContent='(from Tab 1)';
+    document.getElementById('ovr-lnk').style.display='inline';
+    resortRefresh();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB 2 — Top controls
+// ═══════════════════════════════════════════════════════════════
+function doOvr(){t2Ovr=true;document.getElementById('lmp-badge').textContent='(manual)';document.getElementById('ovr-lnk').style.display='none';}
+function onT2lmp(){t2Ovr=true;document.getElementById('lmp-badge').textContent='(manual)';resortRefresh();}
+function setSex(s,btn){
+  sex=s;
+  document.querySelectorAll('.sex-btn').forEach(b=>b.className='sex-btn');
+  btn.classList.add(s==='F'?'sb-f':s==='M'?'sb-m':'sb-u');
+  resortRefresh();
+}
+function setSFHref(r,btn){
+  sfhRef=r;
+  document.querySelectorAll('#sfhref-grp .pill').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const rn=document.getElementById('ref-note');
+  if(rn)rn.textContent=r==='US'
+    ?'Green = SFH centiles (US clinical, 1cm≈1wk) · Rose = EFW centiles (Hadlock 1991 US). When GROW active, amber replaces both.'
+    :'Green = SFH centiles (INTERGROWTH-21st) · Rose = EFW centiles (WHO). When GROW active, amber replaces both.';
+  resortRefresh();
+}
+function setLines(m,btn){
+  showFull=m==='full';
+  document.querySelectorAll('#lines-grp .pill').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  updateChart();
+}
+function setEFWsrc(s,btn){
+  efwSrc=s;
+  document.querySelectorAll('#efwsrc-grp .pill').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  updateChart();
+}
+function setShowMode(m,btn){
+  showMode=m;
+  document.querySelectorAll('#show-grp .pill').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  updateChart();
+}
+function togAdv(){
+  advOn=!advOn;
+  document.getElementById('adv-tog').classList.toggle('on',advOn);
+  for(let i=1;i<=11;i++)document.getElementById('ah'+i).style.display=advOn?'':'none';
+  document.querySelectorAll('.advcell').forEach(td=>td.style.display=advOn?'':'none');
+  document.getElementById('adv-ctl').style.display=advOn?'flex':'none';
+  updateChart();
+}
+function togGROW(){
+  growOn=!growOn;
+  document.getElementById('grow-tog').classList.toggle('on',growOn);
+  document.getElementById('grow-card').style.display=growOn?'':'none';
+  if(growOn)recalcGROW();
+  updateChart();
+}
+function recalcGROW(){
+  const htRaw=parseFloat(document.getElementById('g-ht').value);
+  const htU=document.getElementById('g-ht-u').value;
+  const wtRaw=parseFloat(document.getElementById('g-wt').value);
+  const wtU=document.getElementById('g-wt-u').value;
+  const par=parseInt(document.getElementById('g-par').value)||0;
+  const eth=document.getElementById('g-eth').value;
+  const htCm=htU==='in'?htRaw*2.54:htRaw;
+  const wtKg=wtU==='lbs'?wtRaw*0.453592:wtRaw;
+  if(isNaN(htCm)||isNaN(wtKg)||htCm<=0||wtKg<=0){
+    growTOWval=null;
+    document.getElementById('grow-tow-display').style.display='none';
+    updateChart();return;
+  }
+  growTOWval=growTOW(htCm,wtKg,eth,par);
+  const tow=growTOWval;
+  document.getElementById('grow-tow-display').style.display='';
+  document.getElementById('grow-tow-val').textContent=Math.round(tow).toLocaleString()+' g';
+  document.getElementById('grow-tow-range').textContent=
+    `10th\u201390th at 40w: ${Math.round(tow*(1-1.28*GW.CV)).toLocaleString()}g \u2013 ${Math.round(tow*(1+1.28*GW.CV)).toLocaleString()}g`;
+  updateChart();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VISIT ROWS
+// ═══════════════════════════════════════════════════════════════
+function fi(id,f){return document.querySelector(`tr[data-rid="${id}"] [data-f="${f}"]`);}
+function ub(id,f){return document.querySelector(`tr[data-rid="${id}"] [data-ub="${f}"]`);}
+
+function getGA(id){
+  const de=fi(id,'date'),ge=fi(id,'ga'),lmp=getLMP();
+  if(de&&de.value&&lmp){const ga=gaFromDate(de.value,lmp);if(ga!=null)return ga;}
+  return gaParseStr(ge&&ge.value);
+}
+
+function lockFld(id,f,val){
+  const el=fi(id,f),btn=ub(id,f);
+  if(!el)return;
+  el.value=val;el.readOnly=true;
+  if(btn)btn.classList.add('vis');
+}
+function unlockFld(id,f){
+  const el=fi(id,f),btn=ub(id,f);
+  if(!el)return;
+  el.value='';el.readOnly=false;el.classList.remove('pl','pm','ph');
+  if(btn)btn.classList.remove('vis');
+}
+
+function addRow(){
+  const id=rowId++;
+  const adv=advOn;
+  const ad=`style="display:${adv?'':'none'};"`;
+  const tr=document.createElement('tr');
+  tr.dataset.rid=id;
+  tr.innerHTML=`
+    <td><div class="cw"><input class="ci noub" type="date" data-f="date" onchange="onDate(${id})"><button class="ubtn" data-ub="date" onclick="unlockDate(${id})">✕</button></div></td>
+    <td><div class="cw"><input class="ci" type="text" data-f="ga" placeholder="e.g. 29" onblur="onGA(${id})"><button class="ubtn" data-ub="ga" onclick="unlockGA(${id})">✕</button></div></td>
+    <td><div class="cw"><input class="ci" type="number" step="0.1" data-f="sfh" placeholder="—" oninput="onSFH(${id})"><button class="ubtn" data-ub="sfh" onclick="unlockPair(${id},'sfh','sfhP')">✕</button></div></td>
+    <td><select class="us" data-f="sfhU" onchange="onSFHU(${id})"><option>cm</option><option>mm</option><option>in</option></select></td>
+    <td><div class="cw"><input class="ci" type="number" step="0.1" min="0.1" max="99.9" data-f="sfhP" placeholder="—" oninput="onSFHP(${id})"><button class="ubtn" data-ub="sfhP" onclick="unlockPair(${id},'sfhP','sfh')">✕</button></div></td>
+    <td><div class="cw" style="gap:3px;"><input class="ci" type="number" step="1" data-f="wt" placeholder="—" oninput="onWT(${id})" style="flex:1;"><input class="ci" type="number" step="0.1" data-f="wt2" placeholder="oz" oninput="onWT(${id})" style="max-width:44px;display:none;padding-right:6px;"><button class="ubtn" data-ub="wt" onclick="unlockPair(${id},'wt','wtP');fi(${id},'wt2').value=''">✕</button></div></td>
+    <td><select class="us" data-f="wtU" onchange="onWTU(${id})"><option value="g">g</option><option value="kg">kg</option><option value="lbs_oz">lbs+oz</option></select></td>
+    <td><div class="cw"><input class="ci" type="number" step="0.1" min="0.1" max="99.9" data-f="wtP" placeholder="—" oninput="onWTP(${id})"><button class="ubtn" data-ub="wtP" onclick="unlockPair(${id},'wtP','wt');fi(${id},'wt2').value=''">✕</button></div></td>
+    <td class="advcell" ${ad}><div class="cw"><input class="ci" type="number" step="0.1" data-f="hc" placeholder="—" oninput="onBioM(${id},'HC')"><button class="ubtn" data-ub="hc" onclick="unlockBio(${id},'HC')">✕</button></div></td>
+    <td class="advcell" ${ad}><select class="us" data-f="hcU" onchange="onBioU(${id},'HC')"><option value="mm">mm</option><option value="cm">cm</option></select></td>
+    <td class="advcell" ${ad}><div class="cw"><input class="ci" type="number" step="0.1" min="0.1" max="99.9" data-f="hcP" placeholder="—" oninput="onBioP(${id},'HC')"><button class="ubtn" data-ub="hcP" onclick="unlockBio(${id},'HC')">✕</button></div></td>
+    <td class="advcell" ${ad}><div class="cw"><input class="ci" type="number" step="0.1" data-f="ac" placeholder="—" oninput="onBioM(${id},'AC')"><button class="ubtn" data-ub="ac" onclick="unlockBio(${id},'AC')">✕</button></div></td>
+    <td class="advcell" ${ad}><select class="us" data-f="acU" onchange="onBioU(${id},'AC')"><option value="mm">mm</option><option value="cm">cm</option></select></td>
+    <td class="advcell" ${ad}><div class="cw"><input class="ci" type="number" step="0.1" min="0.1" max="99.9" data-f="acP" placeholder="—" oninput="onBioP(${id},'AC')"><button class="ubtn" data-ub="acP" onclick="unlockBio(${id},'AC')">✕</button></div></td>
+    <td class="advcell" ${ad}><div class="cw"><input class="ci" type="number" step="0.1" data-f="fl" placeholder="—" oninput="onBioM(${id},'FL')"><button class="ubtn" data-ub="fl" onclick="unlockBio(${id},'FL')">✕</button></div></td>
+    <td class="advcell" ${ad}><select class="us" data-f="flU" onchange="onBioU(${id},'FL')"><option value="mm">mm</option><option value="cm">cm</option></select></td>
+    <td class="advcell" ${ad}><div class="cw"><input class="ci" type="number" step="0.1" min="0.1" max="99.9" data-f="flP" placeholder="—" oninput="onBioP(${id},'FL')"><button class="ubtn" data-ub="flP" onclick="unlockBio(${id},'FL')">✕</button></div></td>
+    <td class="advcell" ${ad}><input class="ci noub" type="text" data-f="hefw" placeholder="—" readonly style="color:var(--green);font-weight:500;background:var(--green-l);"></td>
+    <td class="advcell" ${ad}><input class="ci noub" type="text" data-f="hefwP" placeholder="—" readonly></td>
+    <td><button class="del-btn" onclick="delRow(${id})">×</button></td>`;
+  document.getElementById('vtbody').appendChild(tr);
+}
+
+function delRow(id){
+  document.querySelector(`tr[data-rid="${id}"]`)?.remove();
+  updateChart();
+}
+
+// ── Unlock helpers ───────────────────────────────────────────
+function unlockDate(id){
+  unlockFld(id,'date');
+  if(fi(id,'ga').readOnly)unlockFld(id,'ga');
+  updateChart();
+}
+function unlockGA(id){
+  unlockFld(id,'ga');
+  if(fi(id,'date').readOnly)unlockFld(id,'date');
+  updateChart();
+}
+function unlockPair(id,a,b){
+  unlockFld(id,a);unlockFld(id,b);
+  updateChart();
+}
+function unlockBio(id,type){
+  const m=bioFields(type);
+  unlockFld(id,m.meas);unlockFld(id,m.pct);
+  recalcHadlock(id);updateChart();
+}
+
+// ── Date / GA handlers (blur-safe) ───────────────────────────
+function onDate(id){
+  const lmp=getLMP(),de=fi(id,'date'),ge=fi(id,'ga');
+  if(!de.value)return;
+  // Validate the year is 4 digits before acting - avoids locking mid-entry
+  const parts=de.value.split('-');
+  if(!parts[0]||parts[0].length<4||+parts[0]<1900||+parts[0]>2100)return;
+  const ga=gaFromDate(de.value,lmp);
+  if(ga!=null&&lmp){lockFld(id,'ga',gaFmt(ga));}
+  recalcRow(id);resortRefresh();
+}
+function onGA(id){
+  const ge=fi(id,'ga');
+  const ga=gaParseStr(ge.value);
+  if(ga==null){ge.value='';return;}
+  ge.value=gaFmt(ga);ge.readOnly=true;ub(id,'ga').classList.add('vis');
+  const lmp=getLMP(),de=fi(id,'date');
+  if(lmp&&de&&!de.value){lockFld(id,'date',dateFromGA(ga,lmp));}
+  recalcRow(id);resortRefresh();
+}
+
+// ── SFH handlers ─────────────────────────────────────────────
+function onSFH(id){
+  const el=fi(id,'sfh'),pe=fi(id,'sfhP'),u=fi(id,'sfhU').value,ga=getGA(id);
+  if(pe.readOnly)unlockFld(id,'sfhP');
+  if(!el.value){pe.value='';updateChart();return;}
+  if(ga==null){updateChart();return;}
+  const cm=toCm(el.value,u);
+  if(cm!=null){lockFld(id,'sfhP',(sfhToQ(ga,cm)*100).toFixed(1));styPct(fi(id,'sfhP'),sfhToQ(ga,cm)*100);}
+  updateChart();
+}
+function onSFHP(id){
+  const pe=fi(id,'sfhP'),se=fi(id,'sfh'),u=fi(id,'sfhU').value,ga=getGA(id);
+  if(se.readOnly)unlockFld(id,'sfh');
+  if(!pe.value){se.value='';updateChart();return;}
+  if(ga==null){updateChart();return;}
+  const p=parseFloat(pe.value)/100;
+  if(p>0.001&&p<0.999){
+    const sfhVal=sfhAtQ(ga,p);
+    if(sfhVal>0){lockFld(id,'sfh',fromCm(sfhVal,u));styPct(pe,p*100);}
+  }
+  updateChart();
+}
+function onSFHU(id){
+  const u=fi(id,'sfhU').value,pe=fi(id,'sfhP'),ga=getGA(id);
+  const p=parseFloat(pe.value)/100;
+  if(ga!=null&&!isNaN(p)&&p>0&&p<1){const sfhVal=sfhAtQ(ga,p);if(sfhVal>0)fi(id,'sfh').value=fromCm(sfhVal,u);}
+}
+
+// ── EFW handlers ─────────────────────────────────────────────
+function onWT(id){
+  const we=fi(id,'wt'),w2=fi(id,'wt2'),pe=fi(id,'wtP'),u=fi(id,'wtU').value,ga=getGA(id);
+  if(pe.readOnly)unlockFld(id,'wtP');
+  const g=toG(we.value,w2.value,u);
+  if(!g){pe.value='';updateChart();return;}
+  if(ga==null){updateChart();return;}
+  const p=efwToPctRef(ga,g,sex)*100;
+  lockFld(id,'wtP',p.toFixed(1));styPct(fi(id,'wtP'),p);
+  updateChart();
+}
+function onWTP(id){
+  const pe=fi(id,'wtP'),we=fi(id,'wt'),w2=fi(id,'wt2'),u=fi(id,'wtU').value,ga=getGA(id);
+  if(we.readOnly){unlockFld(id,'wt');w2.value='';}
+  if(!pe.value){we.value='';updateChart();return;}
+  if(ga==null){updateChart();return;}
+  const p=parseFloat(pe.value)/100;
+  if(p>0.001&&p<0.999){
+    const{v,v2}=fromG(efwInterpRef(ga,p,sex),u);
+    we.value=v;w2.value=v2;we.readOnly=true;ub(id,'wt').classList.add('vis');
+    styPct(pe,p*100);
+  }
+  updateChart();
+}
+function onWTU(id){
+  const u=fi(id,'wtU').value,w2=fi(id,'wt2'),pe=fi(id,'wtP'),ga=getGA(id);
+  w2.style.display=u==='lbs_oz'?'inline-block':'none';
+  const p=parseFloat(pe.value)/100;
+  if(ga!=null&&!isNaN(p)&&p>0.001&&p<0.999){const{v,v2}=fromG(efwInterp(ga,p,sex),u);fi(id,'wt').value=v;w2.value=v2;}
+}
+
+// ── Biometry handlers ────────────────────────────────────────
+const BIOMAP={HC:{meas:'hc',unit:'hcU',pct:'hcP'},AC:{meas:'ac',unit:'acU',pct:'acP'},FL:{meas:'fl',unit:'flU',pct:'flP'}};
+function bioFields(type){return BIOMAP[type];}
+
+function onBioM(id,type){
+  const m=bioFields(type),el=fi(id,m.meas),pe=fi(id,m.pct),u=fi(id,m.unit).value,ga=getGA(id);
+  if(pe.readOnly)unlockFld(id,m.pct);
+  const mm=toMm(el.value,u);
+  if(mm!=null&&ga!=null){lockFld(id,m.pct,(bioToPct(mm,ga,type)*100).toFixed(1));styPct(fi(id,m.pct),bioToPct(mm,ga,type)*100);}
+  recalcHadlock(id);updateChart();
+}
+function onBioP(id,type){
+  const m=bioFields(type),pe=fi(id,m.pct),el=fi(id,m.meas),u=fi(id,m.unit).value,ga=getGA(id);
+  if(el.readOnly)unlockFld(id,m.meas);
+  if(!pe.value){el.value='';recalcHadlock(id);updateChart();return;}
+  if(ga==null){updateChart();return;}
+  const p=parseFloat(pe.value)/100;
+  if(p>0.001&&p<0.999){lockFld(id,m.meas,fromMm(bioAtPct(p,ga,type),u));styPct(pe,p*100);}
+  recalcHadlock(id);updateChart();
+}
+function onBioU(id,type){
+  const m=bioFields(type),u=fi(id,m.unit).value,pe=fi(id,m.pct),ga=getGA(id);
+  const p=parseFloat(pe.value)/100;
+  if(ga!=null&&!isNaN(p)&&p>0.001&&p<0.999)fi(id,m.meas).value=fromMm(bioAtPct(p,ga,type),u);
+}
+function recalcHadlock(id){
+  const hcCm=toCm(fi(id,'hc')?.value,fi(id,'hcU')?.value||'mm');
+  const acCm=toCm(fi(id,'ac')?.value,fi(id,'acU')?.value||'mm');
+  const flCm=toCm(fi(id,'fl')?.value,fi(id,'flU')?.value||'mm');
+  const hefwEl=fi(id,'hefw'),hefwPEl=fi(id,'hefwP');
+  if(!hefwEl)return;
+  const g=hadlock(hcCm,acCm,flCm);
+  if(g){
+    hefwEl.value=Math.round(g)+' g';
+    const ga=getGA(id);
+    if(ga!=null){const p=efwToPctRef(ga,g,sex)*100;hefwPEl.value=p.toFixed(1);styPct(hefwPEl,p);}
+    else hefwPEl.value='';
+  }else{hefwEl.value='';hefwPEl.value='';}
+}
+
+// ── Row recalc (recompute derived fields without user action) ─
+function recalcRow(id){
+  const ga=getGA(id);if(ga==null)return;
+  const se=fi(id,'sfh'),sp=fi(id,'sfhP'),su=fi(id,'sfhU')?.value||'cm';
+  if(se.value){const cm=toCm(se.value,su);if(cm!=null){lockFld(id,'sfhP',(sfhToQ(ga,cm)*100).toFixed(1));styPct(sp,sfhToQ(ga,cm)*100);}}
+  else if(sp.value&&!sp.readOnly){const p=parseFloat(sp.value)/100;if(p>0.001&&p<0.999){const v=sfhAtQ(ga,p);if(v>0){lockFld(id,'sfh',fromCm(v,su));}}}
+  const we=fi(id,'wt'),wp=fi(id,'wtP'),wu=fi(id,'wtU')?.value||'g',w2=fi(id,'wt2');
+  if(we.value){const g=toG(we.value,w2?.value,wu);if(g){const p=efwToPctRef(ga,g,sex)*100;lockFld(id,'wtP',p.toFixed(1));styPct(wp,p);}}
+  else if(wp.value&&!wp.readOnly){const p=parseFloat(wp.value)/100;if(p>0.001&&p<0.999){const{v,v2}=fromG(efwInterpRef(ga,p,sex),wu);we.value=v;w2.value=v2;we.readOnly=true;ub(id,'wt').classList.add('vis');}}
+  if(advOn)recalcHadlock(id);
+}
+
+function resortRefresh(){
+  const tb=document.getElementById('vtbody');
+  const rows=[...tb.querySelectorAll('tr')];
+  rows.sort((a,b)=>(getGA(+a.dataset.rid)??Infinity)-(getGA(+b.dataset.rid)??Infinity));
+  rows.forEach(r=>tb.appendChild(r));
+  rows.forEach(r=>recalcRow(+r.dataset.rid));
+  updateChart();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHART
+// ═══════════════════════════════════════════════════════════════
+let chart=null;
+const GAS=[];for(let g=20;g<=42;g+=.5)GAS.push(g);
+const PCTS_B=[.10,.50,.90],PCTS_F=[.10,.25,.50,.75,.90];
+const LBL_B=['10th','50th','90th'],LBL_F=['10th','25th','50th','75th','90th'];
+const GRN3=['#9ecfbc','#2d8a6a','#9ecfbc'],GRN5=['#b8ddd0','#88c4a9','#2d8a6a','#88c4a9','#b8ddd0'];
+const RSE3=['#d4a8a8','#9e4a4a','#d4a8a8'],RSE5=['#e8c4c4','#cc8888','#9e4a4a','#cc8888','#e8c4c4'];
+const GLD3=['#e8c88a','#b06030','#e8c88a'],GLD5=['#f0daa8','#d4a860','#b06030','#d4a860','#f0daa8'];
+
+function buildDatasets(){
+  const ds=[];
+  const pcts=showFull?PCTS_F:PCTS_B;
+  const lbls=showFull?LBL_F:LBL_B;
+
+  if(growOn&&growTOWval){
+    // GROW mode: single amber curve family, dual-scaled
+    const gc=showFull?GLD5:GLD3;
+    pcts.forEach((p,i)=>{
+      if(showMode!=='sfh')
+      ds.push({label:`GROW ${lbls[i]}`,data:GAS.map(ga=>({x:ga,y:growEFWatQ(growTOWval,ga,p)})),
+        borderColor:gc[i],borderWidth:p===.5?2.5:1.5,borderDash:p===.5?[]:[5,4],
+        pointRadius:0,fill:false,yAxisID:'y2',tension:.35});
+      if(showMode!=='efw')
+      ds.push({label:`_gs${i}`,data:GAS.map(ga=>({x:ga,y:growSFHatQ(growTOWval,ga,p)})),
+        borderColor:gc[i],borderWidth:p===.5?2.5:1.5,borderDash:p===.5?[]:[5,4],
+        pointRadius:0,fill:false,yAxisID:'y',tension:.35});
+    });
+  }else{
+    // Standard mode: separate SFH (green) and EFW (rose) bands, filtered by showMode
+    const gc=showFull?GRN5:GRN3,rc=showFull?RSE5:RSE3;
+    pcts.forEach((p,i)=>{
+      if(showMode!=='efw')
+        ds.push({label:`SFH ${lbls[i]}`,data:GAS.map(ga=>({x:ga,y:sfhAtQ(ga,p)})),
+          borderColor:gc[i],borderWidth:p===.5?2.5:1.5,borderDash:p===.5?[]:[5,4],
+          pointRadius:0,fill:false,yAxisID:'y',tension:.35});
+      if(showMode!=='sfh')
+        ds.push({label:`EFW ${lbls[i]}`,data:GAS.map(ga=>({x:ga,y:efwInterpRef(ga,p,sex)})),
+          borderColor:rc[i],borderWidth:p===.5?2.5:1.5,borderDash:p===.5?[]:[5,4],
+          pointRadius:0,fill:false,yAxisID:'y2',tension:.35});
+    });
+  }
+
+  // Patient SFH points (×, left axis) — shown in 'sfh' or 'both' modes
+  const sp=[];
+  document.querySelectorAll('#vtbody tr').forEach(tr=>{
+    const id=+tr.dataset.rid,ga=getGA(id);if(!ga)return;
+    const se=fi(id,'sfh'),su=fi(id,'sfhU')?.value||'cm';
+    if(se&&se.value){const cm=toCm(se.value,su);if(cm)sp.push({x:ga,y:cm});}
+  });
+  sp.sort((a,b)=>a.x-b.x);
+  if(sp.length&&showMode!=='efw')ds.push({label:'Fundal Height',data:sp,
+    borderColor:'#333',backgroundColor:'#333',
+    pointStyle:'crossRot',pointRadius:11,pointHoverRadius:13,pointBorderWidth:2.5,
+    showLine:sp.length>1,borderWidth:1.5,borderDash:[4,3],fill:false,yAxisID:'y',tension:0});
+
+  // Patient EFW points (○, right axis)
+  const ep=[];
+  document.querySelectorAll('#vtbody tr').forEach(tr=>{
+    const id=+tr.dataset.rid,ga=getGA(id);if(!ga)return;
+    let g=null;
+    if(efwSrc==='hadlock'&&advOn){const he=fi(id,'hefw');if(he?.value)g=parseFloat(he.value);}
+    if(!g){const we=fi(id,'wt'),w2=fi(id,'wt2'),wu=fi(id,'wtU')?.value||'g';if(we?.value)g=toG(we.value,w2?.value,wu);}
+    if(g)ep.push({x:ga,y:g});
+  });
+  ep.sort((a,b)=>a.x-b.x);
+  if(ep.length&&showMode!=='sfh')ds.push({label:'Est. Fetal Weight',data:ep,
+    borderColor:'#9e4a4a',backgroundColor:'transparent',
+    pointStyle:'circle',pointRadius:11,pointHoverRadius:13,pointBorderWidth:2.5,
+    showLine:ep.length>1,borderWidth:1.5,borderDash:[4,3],fill:false,yAxisID:'y2',tension:0});
+
+  return ds;
+}
+
+function updateChart(){
+  const ctx=document.getElementById('gchart')?.getContext('2d');
+  if(!ctx)return;
+  const ds=buildDatasets();
+  if(chart){
+    chart.data.datasets=ds;
+    chart.options.scales.y.display=showMode!=='efw';
+    chart.options.scales.y2.display=showMode!=='sfh';
+    chart.update('none');return;
+  }
+  chart=new Chart(ctx,{type:'line',data:{datasets:ds},options:{
+    responsive:true,maintainAspectRatio:false,animation:{duration:150},
+    interaction:{mode:'nearest',intersect:false},
+    plugins:{
+      legend:{display:true,position:'top',labels:{
+        font:{family:'Jost',size:10},color:'#999',
+        filter:item=>!item.text.startsWith('_')&&!item.text.includes('th')&&!item.text.includes('nd')&&!item.text.includes('rd'),
+        usePointStyle:true,padding:14}},
+      tooltip:{callbacks:{label:c=>c.dataset.yAxisID==='y'?`SFH: ${c.parsed.y.toFixed(1)} cm`:`EFW: ${Math.round(c.parsed.y).toLocaleString()} g`}}
+    },
+    scales:{
+      x:{type:'linear',min:20,max:42,
+        title:{display:true,text:'Gestational Age (weeks)',font:{family:'Jost',size:10,weight:'500'},color:'#aaa'},
+        ticks:{font:{family:'Jost',size:9},color:'#aaa',stepSize:2},grid:{color:'#f0ebe0'}},
+      y:{type:'linear',position:'left',min:10,max:50,
+        title:{display:true,text:'Fundal Height (cm)',font:{family:'Jost',size:10,weight:'600'},color:'#2d8a6a'},
+        ticks:{font:{family:'Jost',size:9},color:'#2d8a6a'},grid:{color:'#f0ebe0'}},
+      y2:{type:'linear',position:'right',min:0,max:5000,
+        title:{display:true,text:'Estimated Fetal Weight (g)',font:{family:'Jost',size:10,weight:'600'},color:'#9e4a4a'},
+        ticks:{font:{family:'Jost',size:9},color:'#9e4a4a',callback:v=>v>=1000?`${(v/1000).toFixed(1)}k`:v},
+        grid:{drawOnChartArea:false}},
+    }
+  }});
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════
+function switchTab(i){
+  document.querySelectorAll('.tab').forEach((b,j)=>b.classList.toggle('on',i===j));
+  document.querySelectorAll('.panel').forEach((p,j)=>p.classList.toggle('on',i===j));
+  if(i===1&&!chart)updateChart();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SAVE / LOAD SESSION
+// ═══════════════════════════════════════════════════════════════
+
+function collectState(){
+  // Gather all user inputs into a plain JSON-serialisable object
+  const state = {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    lmpTab1: document.getElementById('lmp-in').value,
+    durOn,
+    durOffset: document.getElementById('dur-off').value,
+    lmpTab2: document.getElementById('lmp-t2').value,
+    t2Ovr,
+    sex,
+    sfhRef,
+    advOn,
+    growOn,
+    showFull,
+    efwSrc,
+    showMode,
+    grow: {
+      ht: document.getElementById('g-ht').value,
+      htU: document.getElementById('g-ht-u').value,
+      wt: document.getElementById('g-wt').value,
+      wtU: document.getElementById('g-wt-u').value,
+      par: document.getElementById('g-par').value,
+      eth: document.getElementById('g-eth').value,
+    },
+    rows: [],
+  };
+
+  document.querySelectorAll('#vtbody tr').forEach(tr => {
+    const id = +tr.dataset.rid;
+    const row = {
+      date:    fi(id,'date')?.value  || '',
+      ga:      fi(id,'ga')?.value    || '',
+      sfh:     fi(id,'sfh')?.value   || '',
+      sfhU:    fi(id,'sfhU')?.value  || 'cm',
+      sfhP:    fi(id,'sfhP')?.value  || '',
+      wt:      fi(id,'wt')?.value    || '',
+      wt2:     fi(id,'wt2')?.value   || '',
+      wtU:     fi(id,'wtU')?.value   || 'g',
+      wtP:     fi(id,'wtP')?.value   || '',
+    };
+    if(advOn){
+      row.hc  = fi(id,'hc')?.value  || '';
+      row.hcU = fi(id,'hcU')?.value || 'mm';
+      row.hcP = fi(id,'hcP')?.value || '';
+      row.ac  = fi(id,'ac')?.value  || '';
+      row.acU = fi(id,'acU')?.value || 'mm';
+      row.acP = fi(id,'acP')?.value || '';
+      row.fl  = fi(id,'fl')?.value  || '';
+      row.flU = fi(id,'flU')?.value || 'mm';
+      row.flP = fi(id,'flP')?.value || '';
+    }
+    // Only save rows that have at least one meaningful value
+    if(row.date||row.ga||row.sfh||row.sfhP||row.wt||row.wtP)
+      state.rows.push(row);
+  });
+
+  return state;
+}
+
+function saveSession(){
+  const state = collectState();
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().split('T')[0];
+  a.href = url;
+  a.download = `pregnancy-tracker-${dateStr}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  setStatus(`Saved ${state.rows.length} visit${state.rows.length!==1?'s':''} on ${dateStr}`);
+}
+
+function loadSession(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const state = JSON.parse(e.target.result);
+      if(!state.version) throw new Error('Unrecognised file format');
+      applyState(state);
+      setStatus(`Loaded ${state.rows?.length||0} visit${(state.rows?.length||0)!==1?'s':''} — saved ${state.savedAt?.split('T')[0]||'unknown date'}`);
+    } catch(err) {
+      setStatus('⚠ Could not load file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  evt.target.value = ''; // allow re-loading same file
+}
+
+function applyState(s){
+  // Tab 1
+  if(s.lmpTab1) document.getElementById('lmp-in').value = s.lmpTab1;
+  if(s.durOn !== undefined && s.durOn !== durOn) togDur();
+  if(s.durOffset) document.getElementById('dur-off').value = s.durOffset;
+  if(s.lmpTab1) calcT1();
+
+  // Tab 2 top controls
+  if(s.lmpTab2){ document.getElementById('lmp-t2').value = s.lmpTab2; t2Ovr = !!s.t2Ovr;
+    document.getElementById('lmp-badge').textContent = s.t2Ovr ? '(manual)' : '(from Tab 1)';
+    document.getElementById('ovr-lnk').style.display = s.t2Ovr ? 'none' : 'inline'; }
+
+  if(s.sex && s.sex !== sex){
+    const btn = {U:0,F:1,M:2}[s.sex];
+    if(btn !== undefined) setSex(s.sex, document.querySelectorAll('.sex-btn')[btn]);
+  }
+  if(s.sfhRef && s.sfhRef !== sfhRef){
+    const btn = document.querySelector(`#sfhref-grp .pill:${s.sfhRef==='US'?'first':'last'}-child`);
+    if(btn) setSFHref(s.sfhRef, btn);
+  }
+
+  // Toggles
+  if(s.advOn !== undefined && s.advOn !== advOn) togAdv();
+  if(s.growOn !== undefined && s.growOn !== growOn) togGROW();
+  if(s.showFull !== undefined && s.showFull !== showFull){
+    const btn = document.querySelector(s.showFull ? '#lines-grp .pill:last-child' : '#lines-grp .pill:first-child');
+    if(btn) setLines(s.showFull ? 'full' : 'basic', btn);
+  }
+  if(s.showMode && s.showMode !== showMode){
+    const idx = {both:0,sfh:1,efw:2}[s.showMode];
+    if(idx !== undefined) setShowMode(s.showMode, document.querySelectorAll('#show-grp .pill')[idx]);
+  }
+
+  // GROW inputs
+  if(s.grow){
+    if(s.grow.ht)  document.getElementById('g-ht').value   = s.grow.ht;
+    if(s.grow.htU) document.getElementById('g-ht-u').value = s.grow.htU;
+    if(s.grow.wt)  document.getElementById('g-wt').value   = s.grow.wt;
+    if(s.grow.wtU) document.getElementById('g-wt-u').value = s.grow.wtU;
+    if(s.grow.par) document.getElementById('g-par').value  = s.grow.par;
+    if(s.grow.eth) document.getElementById('g-eth').value  = s.grow.eth;
+    if(s.growOn) recalcGROW();
+  }
+
+  // Rows — clear existing, then add one per saved row
+  document.getElementById('vtbody').innerHTML = '';
+  rowId = 0;
+  (s.rows || []).forEach(r => {
+    addRow();
+    const id = rowId - 1;
+    // Set raw values first (no triggering), then fire the appropriate handler
+    if(r.sfhU)  fi(id,'sfhU').value = r.sfhU;
+    if(r.wtU){  fi(id,'wtU').value  = r.wtU;
+      fi(id,'wt2').style.display = r.wtU === 'lbs_oz' ? 'inline-block' : 'none'; }
+
+    if(r.date){ fi(id,'date').value = r.date; onDate(id); }
+    else if(r.ga){ fi(id,'ga').value = r.ga; onGA(id); }
+
+    if(r.sfh && !fi(id,'sfh').readOnly){ fi(id,'sfh').value = r.sfh; onSFH(id); }
+    else if(r.sfhP && !fi(id,'sfhP').readOnly){ fi(id,'sfhP').value = r.sfhP; onSFHP(id); }
+
+    if(r.wt && !fi(id,'wt').readOnly){ fi(id,'wt').value = r.wt; if(r.wt2) fi(id,'wt2').value = r.wt2; onWT(id); }
+    else if(r.wtP && !fi(id,'wtP').readOnly){ fi(id,'wtP').value = r.wtP; onWTP(id); }
+
+    if(advOn){
+      if(r.hcU) fi(id,'hcU').value = r.hcU;
+      if(r.acU) fi(id,'acU').value = r.acU;
+      if(r.flU) fi(id,'flU').value = r.flU;
+      if(r.hc){ fi(id,'hc').value = r.hc; onBioM(id,'HC'); }
+      else if(r.hcP){ fi(id,'hcP').value = r.hcP; onBioP(id,'HC'); }
+      if(r.ac){ fi(id,'ac').value = r.ac; onBioM(id,'AC'); }
+      else if(r.acP){ fi(id,'acP').value = r.acP; onBioP(id,'AC'); }
+      if(r.fl){ fi(id,'fl').value = r.fl; onBioM(id,'FL'); }
+      else if(r.flP){ fi(id,'flP').value = r.flP; onBioP(id,'FL'); }
+    }
+  });
+
+  updateChart();
+}
+
+function setStatus(msg){
+  const el = document.getElementById('session-status');
+  if(el){ el.textContent = msg; setTimeout(()=>{ if(el.textContent===msg) el.textContent=''; }, 6000); }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+addRow();
+updateChart();
+</script>
+</body>
+</html>
